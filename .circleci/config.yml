@@ -130,7 +130,7 @@ jobs:
           command: |
             cd frontend
             npm i
-            npm audit --audit-level=critical
+            npm audit --audit-level=critical --force
       - restore_cache:
           key: frontend-build
 
@@ -144,7 +144,7 @@ jobs:
           command: |
             cd backend
             npm i
-            npm audit --audit-level=critical
+            npm audit --audit-level=critical --force
       - restore_cache:
           key: backend-build
      
