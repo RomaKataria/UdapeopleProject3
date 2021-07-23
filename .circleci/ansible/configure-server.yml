@@ -14,13 +14,13 @@
       wait_for_connection:
         timeout: 600
 
-    #- name: "install python for Ansible."
+   # - name: "install python for Ansible."
       # Your code here
 
   roles:
     - configure-server
     - configure-prometheus-node-exporter
-
+  
   environment:
     ENVIRONMENT: production
     TYPEORM_CONNECTION: "{{ lookup('env', 'TYPEORM_CONNECTION') }}"
