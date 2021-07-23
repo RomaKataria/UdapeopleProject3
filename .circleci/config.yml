@@ -270,7 +270,6 @@ jobs:
           name: Run migrations
           working_directory: ./backend
           command: |
-            cd backend
             npm install
             cat .env
             npm run build
