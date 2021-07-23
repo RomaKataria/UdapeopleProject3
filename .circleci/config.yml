@@ -17,7 +17,7 @@ commands:
           when: on_fail
           command: |
             aws s3 rm s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-            exit 
+            exit 0
 
 
   revert-migrations:
@@ -38,7 +38,6 @@ commands:
           when: on_fail
             
 jobs:
-
   install-backend-dependencies:
     docker:
       - image: circleci/node:13.8.0
@@ -75,7 +74,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Build front-end
+          name: Frontend Build
           command: |
             cd frontend
             npm i
@@ -93,7 +92,7 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Back-end build
+          name: Backend build
           command: |
             cd backend
             npm i
@@ -102,30 +101,30 @@ jobs:
           root: .
           paths:
             - backend/dist
-
+  
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
       - run:
-          name: Frontend test
+          name: test frontend
           command: |
             cd frontend
             npm i
-            npm run test
-                
+            npm test
+                     
   test-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
       - run:
-          name: Backend test
-          command : |
+          name: test backend
+          command: |
             cd backend
             npm i
-            npm run test
+            npm test
 
   scan-frontend:
     docker:
@@ -133,27 +132,27 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Analyse Frontend
+          name: Check Frontend against security vulnerabilities
           command: |
             cd frontend
             npm i
-            npm audit fix --audit-level=critical --force
+            npm audit fix --audit-level=critical
       - restore_cache:
-          key: frontend-build
-
+          key: v1-frontend-build
+  
   scan-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
       - run:
-          name: Analyse Backend
+          name: Check Backend against security vulnerabilities
           command: |
             cd backend
             npm i
-            npm audit fix --audit-level=critical --force
+            npm audit fix --audit-level=critical
       - restore_cache:
-          key: backend-build
+          key: v1-backend-build
 
   deploy-infrastructure:
     docker:
@@ -173,6 +172,7 @@ jobs:
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}
+
       - run:
           name: Save backend URL in memstash
           command: |
@@ -181,9 +181,9 @@ jobs:
               --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
             curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/BACKEND_URL
-    
+      
       - run:
-          name: Ensure front-end infrastructure existS
+          name: Ensure front-end infrastructure exist
           working_directory: ./.circleci/files
           command: |
             aws cloudformation deploy \
@@ -204,8 +204,8 @@ jobs:
           root: .
           paths:
             - .circleci/ansible/inventory
-    # Here's where you will add some code to rollback on failure
-      - destroy-environment   
+      # Here's where you will add some code to rollback on failure
+      - destroy-environment     
 
   configure-infrastructure:
     docker:
@@ -253,26 +253,10 @@ jobs:
             unzip awscliv2.zip
             sudo ./aws/install
       - run:
-          name: add values to .env files
-          command: |
-            touch backend/.env
-            echo ENVIRONMENT=production >> "backend/.env"
-            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
-            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
-            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
-            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-      - run:
           name: Run migrations
           working_directory: ./backend
           command: |
             npm install
-            cat .env
-            npm run build
             npm run migrations > migration_status
       - run:
           name: Send migration results to memstash
@@ -281,10 +265,10 @@ jobs:
             if grep -q "has been executed successfully" migration_status
             then
               echo "DB migration successful, updating memstash..."
-              curl -H "Content-Type: text/plain" -H "token: a497ba39-5d14-4352-89ca-477a1b1f1728" --request PUT --data "success" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
+              curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "success" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             else
               echo "DB migration failed, please verify setup! Probably the database already exists. Verify setup!"
-              curl -H "Content-Type: text/plain" -H "token: a497ba39-5d14-4352-89ca-477a1b1f1728" --request PUT --data "fail" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
+              curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "fail" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             fi
             echo "WorkflowID=${CIRCLE_WORKFLOW_ID:0:7}"
      # Here's where you will add some code to rollback on failure 
@@ -379,7 +363,7 @@ jobs:
           name: Backend smoke test.
           working_directory: ./backend
           command: |
-            export BACKEND_URL=$(curl -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request GET https://api.memstash.io/values/BACKEND_URL)
+            export BACKEND_URL=$(curl -H "token: a497ba39-5d14-4352-89ca-477a1b1f1728" --request GET https://api.memstash.io/values/BACKEND_URL)
             curl "$BACKEND_URL/api/status"
       - run:
           name: Frontend smoke test.
@@ -409,7 +393,7 @@ jobs:
             WorkflowID=$(aws cloudformation \
               list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
               --no-paginate --output text)
-            curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "$WorkflowID" https://api.memstash.io/values/WorkflowID
+            curl -H "Content-Type: text/plain" -H "token: a497ba39-5d14-4352-89ca-477a1b1f1728" --request PUT --data "$WorkflowID" https://api.memstash.io/values/WorkflowID
       - run:
           name: Update cloudfront distribution
           working_directory: ./.circleci/files
@@ -448,14 +432,8 @@ jobs:
             fi
           environment:
             TERM: xterm-256color
+            
 
-     
-
-  
-
-     
-
-          
 workflows:
   default:
     jobs:
@@ -489,6 +467,7 @@ workflows:
             branches:
               only: 
                 - master
+    # added a comment
       - configure-infrastructure:
           requires: 
             - deploy-infrastructure
@@ -501,5 +480,13 @@ workflows:
       - deploy-backend:
           requires: 
             - run-migrations
-     
-      
+      - smoke-test:
+          requires: 
+            - deploy-backend 
+            - deploy-frontend
+      - cloudfront-update:
+          requires: 
+            - smoke-test
+      - cleanup:
+          requires: 
+            - cloudfront-update
