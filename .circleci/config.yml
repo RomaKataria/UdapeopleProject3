@@ -180,7 +180,7 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
-            curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/$BACKEND_URL
+            curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/BACKEND_URL
       
       - run:
           name: Ensure front-end infrastructure exist
