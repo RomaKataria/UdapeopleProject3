@@ -28,7 +28,8 @@ commands:
           working_directory: ./backend
           command: |
             SUCCESS=$(curl -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request GET https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7})
-            SUCCESS = 1
+           # SUCCESS = 1
+            echo $SUCCESS
             if(( $SUCCESS==1 )); 
             then
               pwd
@@ -180,7 +181,7 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters "Name=tag:project,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
-            curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/BACKEND_URL
+            curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "http://$BACKEND_IP:3030" https://api.memstash.io/values/$BACKEND_IP
       
       - run:
           name: Ensure front-end infrastructure exist
@@ -258,6 +259,7 @@ jobs:
           command: |
             npm install
             npm run migrations > migration_status
+            echo migration_status
       - run:
           name: Send migration results to memstash
           working_directory: ./backend
@@ -265,10 +267,10 @@ jobs:
             if grep -q "has been executed successfully" migration_status
             then
               echo "DB migration successful, updating memstash..."
-              curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "success" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
+              curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "1" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             else
               echo "DB migration failed, please verify setup! Probably the database already exists. Verify setup!"
-              curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "fail" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
+              curl -H "Content-Type: text/plain" -H "token: a1acb674-40be-46e6-83b5-96c8ed1d9827" --request PUT --data "0" https://api.memstash.io/values/DB_MIGRATION_${CIRCLE_WORKFLOW_ID:0:7}
             fi
             echo "WorkflowID=${CIRCLE_WORKFLOW_ID:0:7}"
      # Here's where you will add some code to rollback on failure 
@@ -371,10 +373,11 @@ jobs:
           working_directory: ./backend
           command: |
             URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/index.html"
-            if curl -s ${URL} | grep -q "Welcome"
+            if curl -s ${URL} | grep "Welcome"
             then 
               return 1
-            else return 1
+            else 
+              return 1
             fi
       - revert-migrations
       - destroy-environment
